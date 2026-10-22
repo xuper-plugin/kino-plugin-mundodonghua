@@ -514,7 +514,14 @@ var NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", 
 var HLS = "application/vnd.apple.mpegurl";
 function plan(servers) {
   const cheap = (s) => s.kind === "hls" ? 0 : extractorFor(s.url) ? 1 : 9;
-  return servers.map((s) => ({ ...s, cheap: cheap(s) })).sort((a, b) => a.cheap - b.cheap);
+  let pref = "auto";
+  try {
+    pref = String(kino.config.get("server") || "auto");
+  } catch (_) {
+    pref = "auto";
+  }
+  const rank = (s) => pref !== "auto" && s.id === pref ? -1 : cheap(s);
+  return servers.map((s) => ({ ...s, cheap: cheap(s) })).sort((a, b) => rank(a) - rank(b));
 }
 async function open(server, req, pageUrl, budget) {
   if (server.kind === "hls") {

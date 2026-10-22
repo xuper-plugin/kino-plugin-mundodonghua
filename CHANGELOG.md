@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Settings: **Preferred server** (automatic, VidHide, StreamWish, Filemoon, VOE, StreamP2P or Asura): the one chosen is tried first and the rest follow.
+  / Ajustes: **servidor preferido**; se prueba primero y, si falla, los demás.
+
 ## 0.1.0
 
 - First version, built on Kino's plugin API from the start: **Home rows** (new episodes, airing, all, movies), a **section of its own**

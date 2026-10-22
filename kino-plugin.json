@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "apiVersion": 9,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -92,6 +92,58 @@
           "value": "sub",
           "label": "Solo subtitulados",
           "labelEn": "Subtitled only"
+        }
+      ]
+    },
+    {
+      "key": "serverSection",
+      "type": "section",
+      "label": "Servidor",
+      "labelEn": "Server",
+      "hint": "Cada episodio ofrece hasta cinco servidores; Kino abre primero el que elijas y, si falla, los demás.",
+      "hintEn": "Each episode offers up to five servers; Kino opens the one you pick first and, if it fails, the others."
+    },
+    {
+      "key": "server",
+      "type": "select",
+      "label": "Servidor preferido",
+      "labelEn": "Preferred server",
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Automático",
+          "labelEn": "Automatic"
+        },
+        {
+          "value": "vhide",
+          "label": "VidHide",
+          "labelEn": "VidHide"
+        },
+        {
+          "value": "swish",
+          "label": "StreamWish",
+          "labelEn": "StreamWish"
+        },
+        {
+          "value": "fmoon",
+          "label": "Filemoon",
+          "labelEn": "Filemoon"
+        },
+        {
+          "value": "amagi",
+          "label": "VOE",
+          "labelEn": "VOE"
+        },
+        {
+          "value": "sp2p",
+          "label": "StreamP2P",
+          "labelEn": "StreamP2P"
+        },
+        {
+          "value": "asura",
+          "label": "Asura",
+          "labelEn": "Asura"
         }
       ]
     },

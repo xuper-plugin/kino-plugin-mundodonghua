@@ -213,7 +213,11 @@ const HLS = "application/vnd.apple.mpegurl";
 /** The servers of an episode in the order to try them: the ones opened with plain requests first (cheap and not tied to the app), then the browser ones. */
 function plan(servers) {
   const cheap = (s) => (s.kind === "hls" ? 0 : extractorFor(s.url) ? 1 : 9);
-  return servers.map((s) => ({ ...s, cheap: cheap(s) })).sort((a, b) => a.cheap - b.cheap);
+  // Ajustes ▸ MundoDonghua ▸ Servidor preferido: that one first, whatever it costs; the rest in the usual order
+  let pref = "auto";
+  try { pref = String(kino.config.get("server") || "auto"); } catch (_) { pref = "auto"; }
+  const rank = (s) => (pref !== "auto" && s.id === pref ? -1 : cheap(s));
+  return servers.map((s) => ({ ...s, cheap: cheap(s) })).sort((a, b) => rank(a) - rank(b));
 }
 
 /** One server's stream, or null; `budget.captures` counts the hidden-browser pages left for this resolve. */

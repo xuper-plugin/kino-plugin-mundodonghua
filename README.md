@@ -23,7 +23,7 @@ indique*. Hacen falta porque algunos servidores del sitio (Filemoon, VOE, Stream
 - **Inicio** con *Nuevos episodios*, *En emisión*, *Donghuas* y *Películas*, cada fila con «Ver más» y páginas.
 - **Categorías**: 24 de los 45 géneros del sitio (Acción, Artes Marciales, Cultivación, Fantasía, Romance…), cada uno con su lista por páginas.
 - **Búsqueda** por título, **ficha** con sinopsis y géneros, **temporadas y episodios**, y **descarga**.
-- **Ajustes ▸ MundoDonghua**: mostrar todo, solo doblados (latino o castellano) o solo subtitulados, y vaciar la caché.
+- **Ajustes ▸ MundoDonghua**: mostrar todo, solo doblados (latino o castellano) o solo subtitulados; **servidor preferido** (se prueba primero); y vaciar la caché.
 - Las carátulas son las del propio sitio, y el icono es su logo (la mascota de Mundo Donghua).
 
 ## Servidores

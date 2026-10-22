@@ -221,3 +221,18 @@ test("settings: the status line counts the lists kept and the action clears them
   assert.equal((await plugin.action("clearCache")).message, "Cache cleared.");
   assert.equal(store.size, 0);
 });
+
+test("settings: the preferred server is tried first, the others follow", async () => {
+  pages[NEW_URL] = { body: EP_NEW };
+  withBrowser(async () => ({ media: [{ url: "https://cdn.example/f.m3u8", headers: { Referer: "https://bysekoze.com/" } }] }));
+  cfg.server = "fmoon";
+  const s = await plugin.resolve("e:jade-dynasty-4:11");
+  assert.equal(s.label, "Filemoon", "Filemoon first even though VidHide and StreamWish are cheaper");
+  assert.equal(captures.length, 1);
+  assert.deepEqual(s.alternatives.map((a) => a.label).sort(), ["StreamP2P", "StreamWish", "VOE", "VidHide"]);
+  cfg.server = "auto"; captures = [];
+  const servers = (await import("../src/mundodonghua.js")).parseServers(EP_NEW);
+  pages[servers.find((x) => x.id === "vhide").url] = { body: hlsPage };
+  assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VidHide");
+  assert.equal(captures.length, 0);
+});
