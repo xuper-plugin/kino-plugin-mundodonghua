@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Declares `callistanise.com` (where VidHide redirects) so Kino no longer interrupts the episode with a permission question.
+  / Declara `callistanise.com` (adonde redirige VidHide): Kino ya no interrumpe el episodio con una pregunta de permiso.
+
 ## 0.1.2
 
 - Declares `mdplayer.xyz` (the Asura server's host) so Kino no longer asks to allow it in the middle of an episode.
