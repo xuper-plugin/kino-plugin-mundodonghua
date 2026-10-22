@@ -1,0 +1,13 @@
+# Changelog
+
+## 0.1.0
+
+- First version, built on Kino's plugin API from the start: **Home rows** (new episodes, airing, all, movies), a **section of its own**
+  ("Donghua", tabs novedades, series, géneros, películas, a hero with the first cover), **categories** (24 of the site's 45 genres, each a
+  paged list), **search**, **seasons and episodes**, a **page of its own** for a show (`details`), a **settings form** (show only dubbed or
+  only subtitled, status, clear the cache), a magenta **theme**, the **download** capability and English texts. Needs Kino 0.9.55.
+  Servers: VidHidePro and EmbedWish (StreamWish) with plain requests; Asura (a playlist address) with one request; Filemoon/ByseSX, VOE and
+  StreamP2P through the hidden browser (`kino.browser.capture`, at most three pages per resolve), which only works in the app.
+  / Primera versión, con la API de Kino desde el principio: filas de Inicio, sección propia, categorías por género, búsqueda,
+  temporadas y capítulos, ficha propia, ajustes, tema magenta, descargas y textos en inglés. Servidores: VidHidePro y EmbedWish sin
+  navegador; Asura con una petición; Filemoon, VOE y StreamP2P con el navegador oculto.

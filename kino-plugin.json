@@ -1,0 +1,113 @@
+{
+  "id": "mundodonghua",
+  "name": "MundoDonghua",
+  "version": "0.1.0",
+  "apiVersion": 9,
+  "entry": "plugin.js",
+  "icon": "icon.png",
+  "description": "Donghua (animación china) en español de mundodonghua.com: sección propia, 32 géneros, nuevos episodios, series y películas, en latino, castellano o subtitulado.",
+  "author": "xuper-plugin",
+  "homepage": "https://github.com/xuper-plugin/kino-plugin-mundodonghua",
+  "hosts": [
+    "mundodonghua.com",
+    "www.mundodonghua.com",
+    "bysekoze.com",
+    "voe.sx",
+    "vgembed.com",
+    "strp2p.com",
+    "*.strp2p.com",
+    "mdnemonicplayer.xyz",
+    "www.mdnemonicplayer.xyz",
+    "vidhide.com",
+    "vidhidepro.com",
+    "vidhideplus.com",
+    "vidhidefast.com",
+    "dintezuvio.com",
+    "minochinos.com",
+    "filelions.to",
+    "morencius.com",
+    "embedwish.com",
+    "hlswish.com",
+    "streamwish.com",
+    "streamwish.to",
+    "strwish.com",
+    "wishembed.com",
+    "filelions.com",
+    "hglink.to",
+    "vibuxer.com"
+  ],
+  "capabilities": [
+    "search",
+    "home",
+    "browse",
+    "episodes",
+    "resolve",
+    "download"
+  ],
+  "browser": true,
+  "streamHosts": "any",
+  "categories": [
+    "series",
+    "movies"
+  ],
+  "color": "#A21CAF",
+  "section": {
+    "label": "Donghua",
+    "labelEn": "Donghua"
+  },
+  "theme": {
+    "accent": "#A21CAF",
+    "onAccent": "#FFFFFF",
+    "background": "#12081A",
+    "surface": "#1F1030",
+    "highlight": "#F0ABFC"
+  },
+  "settings": [
+    {
+      "key": "audioSection",
+      "type": "section",
+      "label": "Idioma",
+      "labelEn": "Language",
+      "hint": "Elige qué donghua salen en las listas, los géneros y la búsqueda.",
+      "hintEn": "Choose which donghua show in lists, genres and search."
+    },
+    {
+      "key": "audio",
+      "type": "select",
+      "label": "Mostrar",
+      "labelEn": "Show",
+      "default": "all",
+      "options": [
+        {
+          "value": "all",
+          "label": "Todos",
+          "labelEn": "All"
+        },
+        {
+          "value": "dub",
+          "label": "Solo doblados (latino o castellano)",
+          "labelEn": "Dubbed only (Latino or Castilian)"
+        },
+        {
+          "value": "sub",
+          "label": "Solo subtitulados",
+          "labelEn": "Subtitled only"
+        }
+      ]
+    },
+    {
+      "key": "info",
+      "type": "status",
+      "label": "Estado",
+      "labelEn": "Status"
+    },
+    {
+      "key": "clearCache",
+      "type": "action",
+      "label": "Vaciar caché",
+      "labelEn": "Clear cache",
+      "confirm": "¿Vaciar la caché de listas?",
+      "confirmEn": "Clear the list cache?"
+    }
+  ]
+}
