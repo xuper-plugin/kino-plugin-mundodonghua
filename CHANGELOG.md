@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Declares `mdplayer.xyz` (the Asura server's host) so Kino no longer asks to allow it in the middle of an episode.
+  / Declara `mdplayer.xyz` (host del servidor Asura): Kino ya no pide permiso a mitad de un episodio.
+
 ## 0.1.1
 
 - Settings: **Preferred server** (automatic, VidHide, StreamWish, Filemoon, VOE, StreamP2P or Asura): the one chosen is tried first and the rest follow.

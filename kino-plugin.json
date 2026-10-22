@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "apiVersion": 9,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -16,7 +16,7 @@
     "vgembed.com",
     "strp2p.com",
     "*.strp2p.com",
-    "mdnemonicplayer.xyz",
+    "mdplayer.xyz", "www.mdplayer.xyz", "mdnemonicplayer.xyz",
     "www.mdnemonicplayer.xyz",
     "vidhide.com",
     "vidhidepro.com",
