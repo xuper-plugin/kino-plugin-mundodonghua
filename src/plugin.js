@@ -79,9 +79,11 @@ function toItem(card) {
   const movie = /pel[ií]cula/i.test(card.badge || "");
   const dub = isDubbed(card.title);
   const item = {
+    lang: dub ? (/castellano/i.test(card.title) ? "es-ES" : "es-419") : undefined,
     id: idOf(card.slug), ref: (movie ? "m:" : "d:") + encodeURIComponent(card.slug), title: card.title.replace(/\s+(latino|castellano)$/i, "").trim() || card.title,
     kind: movie ? "movie" : "series", genres: ["Animación"], badges: [dub ? (/castellano/i.test(card.title) ? t("esp") : t("lat")) : t("sub")],
   };
+  if (!item.lang) delete item.lang;
   if (card.poster) item.poster = card.poster;
   if (card.episode) item.badges.unshift(`${t("ep")} ${card.episode}`);
   else if (card.badge && !/^donghua$/i.test(card.badge)) item.badges.unshift(card.badge);
@@ -150,7 +152,11 @@ export async function search(arg) {
   const q = String((typeof arg === "string" ? arg : arg && arg.q) || "").trim();
   if (q.length < 2) return [];
   const cards = await cached("s:" + q.toLowerCase(), async () => parseCards(await getPage(`${SITE}/busquedas?donghua=${encodeURIComponent(q)}`)));
-  return byAudio(cards).slice(0, 40).map(toItem);
+  // inside a "Ver más" page: the movies page (genre Película) keeps movies, any other page keeps the series
+  const within = typeof arg === "object" && arg && arg.within ? refOf(arg.within) : null;
+  const moviePage = within && within.kind === "genre" && /^pel[ií]cula/i.test(within.name);
+  const items = byAudio(cards).map((c) => toItem(c));
+  return items.filter((i) => !within || (i.kind === "movie") === !!moviePage).slice(0, 40);
 }
 
 // ---- the plugin's own section, categories and details ----

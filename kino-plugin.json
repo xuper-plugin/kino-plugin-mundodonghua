@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "apiVersion": 9,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -16,9 +16,12 @@
     "vgembed.com",
     "strp2p.com",
     "*.strp2p.com",
-    "mdplayer.xyz", "www.mdplayer.xyz", "mdnemonicplayer.xyz",
+    "mdplayer.xyz",
+    "www.mdplayer.xyz",
+    "mdnemonicplayer.xyz",
     "www.mdnemonicplayer.xyz",
-    "vidhide.com", "callistanise.com",
+    "vidhide.com",
+    "callistanise.com",
     "vidhidepro.com",
     "vidhideplus.com",
     "vidhidefast.com",
@@ -42,7 +45,8 @@
     "browse",
     "episodes",
     "resolve",
-    "download"
+    "download",
+    "scopedSearch"
   ],
   "browser": true,
   "streamHosts": "any",
@@ -161,5 +165,6 @@
       "confirm": "¿Vaciar la caché de listas?",
       "confirmEn": "Clear the list cache?"
     }
-  ]
+  ],
+  "telemetry": true
 }

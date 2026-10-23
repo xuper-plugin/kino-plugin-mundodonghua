@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- Search inside a "Ver más" page (`scopedSearch`: the movies page keeps movies, the others keep series), the audio language on each title (`lang`) and `telemetry`.
+  / Búsqueda dentro de una página «Ver más», el idioma de audio en cada título y `telemetry`.
+
 ## 0.1.3
 
 - Declares `callistanise.com` (where VidHide redirects) so Kino no longer interrupts the episode with a permission question.
