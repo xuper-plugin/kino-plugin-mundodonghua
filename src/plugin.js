@@ -8,6 +8,7 @@
 import { SITE, GENRES, isDubbed, parseCards, parseShow, parseServers } from "./mundodonghua.js";
 import { extractorFor } from "./extractors/index.js";
 import { makeReq, UA } from "./util/http.js";
+import { searchWithTerms } from "./util/terms.js";
 
 const CACHE_MS = 10 * 60 * 1000;
 const PAGE = 24;
@@ -51,6 +52,7 @@ async function cached(key, fn) {
     if (e && Date.now() - e.at < CACHE_MS) return e.v;
   } catch (_) { /* no cache */ }
   const v = await fn();
+  if (Array.isArray(v) && !v.length) return v; // an empty answer may be a throttle or a hiccup: not kept
   try { kino.storage.set("c:" + key, JSON.stringify({ at: Date.now(), v }), { ttlMs: CACHE_MS }); } catch (_) { /* a full storage only costs a refetch */ }
   return v;
 }
@@ -148,7 +150,7 @@ export async function browse(ref, cursor) {
   return { items: cards.map(toItem), next: more ? String(page + 1) : undefined };
 }
 
-export async function search(arg) {
+async function searchOne(arg) {
   const q = String((typeof arg === "string" ? arg : arg && arg.q) || "").trim();
   if (q.length < 2) return [];
   const cards = await cached("s:" + q.toLowerCase(), async () => parseCards(await getPage(`${SITE}/busquedas?donghua=${encodeURIComponent(q)}`)));
@@ -158,6 +160,8 @@ export async function search(arg) {
   const items = byAudio(cards).map((c) => toItem(c));
   return items.filter((i) => !within || (i.kind === "movie") === !!moviePage).slice(0, 40);
 }
+
+export const search = (arg) => searchWithTerms(arg, searchOne);
 
 // ---- the plugin's own section, categories and details ----
 
