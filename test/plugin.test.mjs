@@ -24,6 +24,7 @@ globalThis.kino = {
     return { ok: status < 400, status, url, text: () => p?.body ?? "", json: () => JSON.parse(p?.body ?? "{}") };
   },
   storage: { get: (k) => store.get(k) ?? null, set: (k, v) => store.set(k, String(v)), keys: () => [...store.keys()], remove: (k) => store.delete(k) },
+  sleep: (ms) => new Promise((r) => setTimeout(r, Math.min(ms, 5))), // the runtime has it; Home waits on short sleeps
   log: (...a) => logs.push(a.join(" ")),
   error: (code, message, opts = {}) => Object.assign(new Error(message), { code, ...opts }),
 };

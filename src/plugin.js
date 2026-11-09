@@ -9,6 +9,7 @@ import { SITE, GENRES, isDubbed, parseCards, parseShow, parseServers } from "./m
 import { extractorFor } from "./extractors/index.js";
 import { makeReq, UA } from "./util/http.js";
 import { searchWithTerms } from "./util/terms.js";
+import { homeWithin } from "./util/home.js";
 
 const CACHE_MS = 10 * 60 * 1000;
 const PAGE = 24;
@@ -134,12 +135,12 @@ async function rowOf(id, ref, genre) {
 // ---- exports ----
 
 export async function home() {
-  return (await Promise.all([
-    safeRow("episodios", () => rowOf("episodios", "list:episodios")),
-    safeRow("emision", () => rowOf("emision", "list:emision")),
-    safeRow("todas", () => rowOf("todas", "list:todas")),
-    safeRow("peliculas", () => rowOf("peliculas", "genre:Película", "peliculas")),
-  ])).filter(Boolean);
+  return homeWithin([
+    () => safeRow("episodios", () => rowOf("episodios", "list:episodios")),
+    () => safeRow("emision", () => rowOf("emision", "list:emision")),
+    () => safeRow("todas", () => rowOf("todas", "list:todas")),
+    () => safeRow("peliculas", () => rowOf("peliculas", "genre:Película", "peliculas")),
+  ]);
 }
 
 export async function browse(ref, cursor) {
