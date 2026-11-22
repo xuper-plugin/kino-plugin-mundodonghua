@@ -1080,6 +1080,34 @@ async function open(server, req, pageUrl, budget) {
   if (capture) budget.captures -= 1;
   return out;
 }
+var STATS_KEY = "srvStats";
+var STATS_CAP = 24;
+function readStats() {
+  try {
+    const o = JSON.parse(kino.storage.get(STATS_KEY) || "{}");
+    return o && typeof o === "object" ? o : {};
+  } catch (_) {
+    return {};
+  }
+}
+function scoreOf(id, stats) {
+  const s = stats[id] || { ok: 0, fail: 0 };
+  return (s.ok + 1) / (s.ok + s.fail + 2);
+}
+function noteServer(id, ok) {
+  try {
+    const stats = readStats();
+    const s = stats[id] || { ok: 0, fail: 0 };
+    s[ok ? "ok" : "fail"] += 1;
+    if (s.ok + s.fail > STATS_CAP) {
+      s.ok = Math.round(s.ok / 2);
+      s.fail = Math.round(s.fail / 2);
+    }
+    stats[id] = s;
+    kino.storage.set(STATS_KEY, JSON.stringify(stats));
+  } catch (_) {
+  }
+}
 async function resolve(ref) {
   const m = /^(?:e:([^:]+):(\d+)|m:([^:]+)|c:([^:]+):(\d+):(\d+))$/.exec(String(ref || ""));
   if (!m) throw kino.error("not_found", "unknown ref: " + ref);
@@ -1098,16 +1126,26 @@ async function resolve(ref) {
   if (!servers.length) throw kino.error("not_found", "no servers on " + pageUrl, { userMessage: t("noStreams") });
   const req = makeReq(kino, { deadline: Date.now() + RESOLVE_MS });
   const budget = { captures: MAX_CAPTURES };
+  let prefSet = false;
+  try {
+    prefSet = String(kino.config.get("server") || "auto") !== "auto";
+  } catch (_) {
+    prefSet = false;
+  }
+  const stats = readStats();
+  const order = only != null ? [only] : prefSet ? servers.map((_, k) => k) : servers.map((_, k) => k).sort((a, b) => scoreOf(servers[b].id, stats) - scoreOf(servers[a].id, stats));
   const failures = [];
-  for (const i of only != null ? [only] : servers.map((_, k) => k)) {
+  for (const i of order) {
     const s = servers[i];
     if (!s) continue;
     try {
       const out = await open(s, req, pageUrl, budget);
       if (!out) {
         failures.push(`${s.id}: no stream`);
+        noteServer(s.id, false);
         continue;
       }
+      noteServer(s.id, true);
       const stream = { url: out.url, mime: out.mime, headers: { "User-Agent": UA, ...out.headers || {} }, label: NAMES[s.id] || s.id };
       if (out.subtitles) stream.subtitles = out.subtitles;
       if (out.durationMs) stream.durationMs = out.durationMs;
@@ -1122,6 +1160,7 @@ async function resolve(ref) {
       return stream;
     } catch (e) {
       failures.push(`${s.id}: ${e && e.code || ""} ${e && e.message || e}`.trim());
+      noteServer(s.id, false);
     }
   }
   kino.log(`resolve ${slug}/${number} failed: ${failures.join("; ")}`);

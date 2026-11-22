@@ -263,6 +263,24 @@ async function open(server, req, pageUrl, budget) {
   return out;
 }
 
+// ---- learned server reliability (kept in storage; the server that opens for this person is tried first next time) ----
+const STATS_KEY = "srvStats";
+const STATS_CAP = 24; // halve the counts past this, so a server that recovers climbs back
+function readStats() { try { const o = JSON.parse(kino.storage.get(STATS_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch (_) { return {}; } }
+/** Laplace-smoothed success rate of a server id (unknown = 0.5). */
+function scoreOf(id, stats) { const s = stats[id] || { ok: 0, fail: 0 }; return (s.ok + 1) / (s.ok + s.fail + 2); }
+/** Record that a server opened (ok=true) or not; never throws. */
+function noteServer(id, ok) {
+  try {
+    const stats = readStats();
+    const s = stats[id] || { ok: 0, fail: 0 };
+    s[ok ? "ok" : "fail"] += 1;
+    if (s.ok + s.fail > STATS_CAP) { s.ok = Math.round(s.ok / 2); s.fail = Math.round(s.fail / 2); }
+    stats[id] = s;
+    kino.storage.set(STATS_KEY, JSON.stringify(stats));
+  } catch (_) { /* the stats are a nicety */ }
+}
+
 /** `ref` is an episode ("e:<slug>:<n>"), a movie ("m:<slug>", its first episode) or one of an episode's other servers ("c:<slug>:<n>:<i>"). */
 export async function resolve(ref) {
   const m = /^(?:e:([^:]+):(\d+)|m:([^:]+)|c:([^:]+):(\d+):(\d+))$/.exec(String(ref || ""));
@@ -278,13 +296,19 @@ export async function resolve(ref) {
 
   const req = makeReq(kino, { deadline: Date.now() + RESOLVE_MS });
   const budget = { captures: MAX_CAPTURES };
+  // Auto pick: the server that has opened for this person first (learned score), unless they chose a preferred one
+  // (plan already put it first). The cp:<i> indices and the alternatives stay in the stable plan order, so a saved copy ref holds.
+  let prefSet = false; try { prefSet = String(kino.config.get("server") || "auto") !== "auto"; } catch (_) { prefSet = false; }
+  const stats = readStats();
+  const order = only != null ? [only] : (prefSet ? servers.map((_, k) => k) : servers.map((_, k) => k).sort((a, b) => scoreOf(servers[b].id, stats) - scoreOf(servers[a].id, stats)));
   const failures = [];
-  for (const i of only != null ? [only] : servers.map((_, k) => k)) {
+  for (const i of order) {
     const s = servers[i];
     if (!s) continue;
     try {
       const out = await open(s, req, pageUrl, budget);
-      if (!out) { failures.push(`${s.id}: no stream`); continue; }
+      if (!out) { failures.push(`${s.id}: no stream`); noteServer(s.id, false); continue; }
+      noteServer(s.id, true);
       const stream = { url: out.url, mime: out.mime, headers: { "User-Agent": UA, ...(out.headers || {}) }, label: NAMES[s.id] || s.id };
       if (out.subtitles) stream.subtitles = out.subtitles;
       if (out.durationMs) stream.durationMs = out.durationMs;
@@ -296,6 +320,7 @@ export async function resolve(ref) {
       return stream;
     } catch (e) {
       failures.push(`${s.id}: ${(e && e.code) || ""} ${(e && e.message) || e}`.trim());
+      noteServer(s.id, false);
     }
   }
   kino.log(`resolve ${slug}/${number} failed: ${failures.join("; ")}`);

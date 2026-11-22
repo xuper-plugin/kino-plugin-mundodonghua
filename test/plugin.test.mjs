@@ -248,7 +248,17 @@ test("settings: the preferred server is tried first, the others follow", async (
   assert.equal(s.label, "Filemoon", "Filemoon first when preferred, even though the others rank higher");
   assert.equal(captures.length, 0, "Filemoon resolves inline through the door now");
   assert.deepEqual(s.alternatives.map((a) => a.label).sort(), ["StreamP2P", "StreamWish", "VOE", "VidHide"]);
-  cfg.server = "auto"; captures = [];
+  cfg.server = "auto"; captures = []; store.delete("srvStats"); // fresh history: auto falls back to the static order
   assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VidHide");
   assert.equal(captures.length, 0);
+});
+
+test("resolve: learns which server opened and tries it first next time", async () => {
+  pages[NEW_URL] = { body: EP_NEW };
+  // First play: VidHide and StreamWish (the static leaders) give nothing, so VOE opens -> VOE earns a win, they lose.
+  door = (url) => (/vidhide|vidhidepro|streamwish|embedwish/i.test(url) ? { streams: [] } : defaultDoor(url));
+  assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VOE");
+  // Second play: every server would open now; the learned order puts VOE (the past winner) ahead of VidHide.
+  door = null;
+  assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VOE", "the server that opened is tried first");
 });
