@@ -231,11 +231,9 @@ export async function episodes(ref) {
 const NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", vhide: "VidHide", swish: "StreamWish", sp2p: "StreamP2P" };
 const HLS = "application/vnd.apple.mpegurl";
 
-// VGEmbed and StreamP2P only resolve in a real browser (bot/JS gated), so the resolver hands them to MundoDonghua's
-// WebView capture -- costlier than the inline hosts (VOE/VidHide/StreamWish/Byse), so they go last; Asura is a direct playlist.
-const CAPTURE_IDS = new Set(["kaga", "sp2p"]);
 // The order to try an episode's servers: the direct playlist, then the quick inline hosts, Byse/Filemoon (a slower PoW
-// captcha) after them, and the WebView-only ones last.
+// captcha) after them, and the browser-only ones last (VGEmbed, StreamP2P -- bot/JS gated, so they go to the WebView
+// capture). A server the resolver does not know inline still falls through to the capture; nothing is special-cased out.
 const ORDER = ["asura", "vhide", "swish", "amagi", "fmoon", "kaga", "sp2p"];
 /** The servers of an episode in the order to try them. */
 function plan(servers) {
@@ -254,12 +252,11 @@ async function open(server, req, pageUrl, budget) {
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }
-  // The inline hosts (VOE/VidHide/StreamWish/Byse) resolve through the door; the browser-only ones (VGEmbed, StreamP2P)
-  // go to MundoDonghua's own WebView capture, capped per resolve so a bad episode can't open many 20 s pages.
-  const capture = CAPTURE_IDS.has(server.id);
-  if (capture && budget.captures <= 0) return null;
-  const out = await resolveViaHelper(server.url, kino, SITE + "/", capture);
-  if (capture) budget.captures -= 1;
+  // The resolver opens the inline hosts (VOE/VidHide/StreamWish/Byse) directly; whatever it can't do inline -- a gated
+  // host, or one it does not know (VGEmbed, StreamP2P, ...) -- is handed to MundoDonghua's own WebView capture while this
+  // resolve still has budget, capped so a bad episode can't open many 20 s pages. A capture is spent only when one runs.
+  const out = await resolveViaHelper(server.url, kino, SITE + "/", budget.captures > 0);
+  if (out && out.captured) budget.captures -= 1;
   return out;
 }
 

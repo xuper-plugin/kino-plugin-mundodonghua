@@ -190,15 +190,14 @@ test("resolve: without the resolver installed it asks to install the playback en
   await assert.rejects(plugin.resolve("e:jade-dynasty-4:11"), (e) => e.code === "unavailable" && /motor de reproducci/.test(e.userMessage) && !/kino/i.test(e.userMessage));
 });
 
-test("resolve: VGEmbed/StreamP2P resolve through the WebView capture, a playlist winning over a file", async () => {
+test("resolve: a server the resolver can't open inline falls back to the WebView capture (any server, not only the gated ones), a playlist winning over a file", async () => {
   pages[OLD_URL] = { body: EP_OLD };
-  door = () => ({ streams: [] }); // nothing resolves inline, so it reaches the capture-only server (VGEmbed)
-  withBrowser(async () => ({ media: [{ url: "https://cdn.example/seg.mp4", headers: { Referer: "https://vgembed.com/" } }, { url: "https://cdn.example/master.m3u8", headers: { Referer: "https://vgembed.com/", Origin: "https://vgembed.com" } }] }));
+  door = () => ({ streams: [] }); // nothing resolves inline, so the first non-direct server falls back to the capture
+  withBrowser(async (url) => ({ media: [{ url: "https://cdn.example/seg.mp4", headers: { Referer: url } }, { url: "https://cdn.example/master.m3u8", headers: { Referer: url, Origin: "https://cdn.example" } }] }));
   const s = await plugin.resolve("e:1st-kiss:1");
-  assert.equal(s.url, "https://cdn.example/master.m3u8");
-  assert.equal(s.label, "VGEmbed");
-  assert.match(captures[0].url, /^https:\/\/vgembed\.com\/e\//);
-  assert.equal(captures[0].o.headers.Referer, "https://www.mundodonghua.com/");
+  assert.equal(s.url, "https://cdn.example/master.m3u8", "the playlist wins over the file");
+  assert.ok(captures.length >= 1, "a hidden browser page was opened for a server the door could not resolve inline");
+  assert.equal(captures[0].o.headers.Referer, "https://www.mundodonghua.com/", "the capture carries the site referer");
 });
 
 test("resolve: the WebView capture is capped and falls through; with no browser the person gets a sentence", async () => {

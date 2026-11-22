@@ -1052,7 +1052,6 @@ async function episodes(ref) {
 }
 var NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", vhide: "VidHide", swish: "StreamWish", sp2p: "StreamP2P" };
 var HLS = "application/vnd.apple.mpegurl";
-var CAPTURE_IDS = /* @__PURE__ */ new Set(["kaga", "sp2p"]);
 var ORDER = ["asura", "vhide", "swish", "amagi", "fmoon", "kaga", "sp2p"];
 function plan(servers) {
   const base = (s) => {
@@ -1074,10 +1073,8 @@ async function open(server, req, pageUrl, budget) {
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }
-  const capture = CAPTURE_IDS.has(server.id);
-  if (capture && budget.captures <= 0) return null;
-  const out = await resolveViaHelper(server.url, kino, SITE + "/", capture);
-  if (capture) budget.captures -= 1;
+  const out = await resolveViaHelper(server.url, kino, SITE + "/", budget.captures > 0);
+  if (out && out.captured) budget.captures -= 1;
   return out;
 }
 var STATS_KEY = "srvStats";
