@@ -25,6 +25,18 @@ const RESOLVE_MS = 70000;
 const CAPTURE_MS = 20000;
 const MAX_CAPTURES = 3;
 
+// A WebView capture costs up to 20 s whether or not it finds the video, so the budget is spent on the ATTEMPT, and a capture
+// only starts if a whole page still fits before this resolve's deadline (Kino gives a browser plugin 75 s; a resolve that
+// chained several failed captures ran past it and the person was left on an endless spinner).
+const CAPTURE_PAGE_MS = 23000;
+/** Spend one hidden-browser capture if the budget and the clock allow it; asked right before the capture starts. */
+function takeCapture(budget) {
+  if (!budget || budget.captures <= 0 || budget.deadline - Date.now() < CAPTURE_PAGE_MS) return false;
+  budget.captures -= 1;
+  return true;
+}
+
+
 // ---- i18n ----
 
 const STRINGS = {
@@ -255,8 +267,7 @@ async function open(server, req, pageUrl, budget) {
   // The resolver opens the inline hosts (VOE/VidHide/StreamWish/Byse) directly; whatever it can't do inline -- a gated
   // host, or one it does not know (VGEmbed, StreamP2P, ...) -- is handed to MundoDonghua's own WebView capture while this
   // resolve still has budget, capped so a bad episode can't open many 20 s pages. A capture is spent only when one runs.
-  const out = await resolveViaHelper(server.url, kino, SITE + "/", budget.captures > 0);
-  if (out && out.captured) budget.captures -= 1;
+  const out = await resolveViaHelper(server.url, kino, SITE + "/", () => takeCapture(budget));
   return out;
 }
 
@@ -292,7 +303,7 @@ export async function resolve(ref) {
   if (!servers.length) throw kino.error("not_found", "no servers on " + pageUrl, { userMessage: t("noStreams") });
 
   const req = makeReq(kino, { deadline: Date.now() + RESOLVE_MS });
-  const budget = { captures: MAX_CAPTURES };
+  const budget = { captures: MAX_CAPTURES, deadline: Date.now() + RESOLVE_MS };
   // Auto pick: the server that has opened for this person first (learned score), unless they chose a preferred one
   // (plan already put it first). The cp:<i> indices and the alternatives stay in the stable plan order, so a saved copy ref holds.
   let prefSet = false; try { prefSet = String(kino.config.get("server") || "auto") !== "auto"; } catch (_) { prefSet = false; }

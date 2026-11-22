@@ -715,7 +715,7 @@ async function resolveViaHelper(embedUrl, kino2, referer, allowCapture = true) {
   let streams = res && Array.isArray(res.streams) ? res.streams.slice() : [];
   const subtitles = res && Array.isArray(res.subtitles) ? res.subtitles.filter((x) => x && x.lang && x.url) : [];
   let captured = false;
-  if (!streams.length && allowCapture) {
+  if (!streams.length && (typeof allowCapture === "function" ? allowCapture() : allowCapture)) {
     streams = await captureStreams(kino2, embedUrl, referer);
     captured = streams.length > 0;
   }
@@ -814,6 +814,12 @@ var CACHE_MS = 10 * 60 * 1e3;
 var PAGE = 24;
 var RESOLVE_MS = 7e4;
 var MAX_CAPTURES = 3;
+var CAPTURE_PAGE_MS = 23e3;
+function takeCapture(budget) {
+  if (!budget || budget.captures <= 0 || budget.deadline - Date.now() < CAPTURE_PAGE_MS) return false;
+  budget.captures -= 1;
+  return true;
+}
 var STRINGS = {
   es: {
     news: "Novedades",
@@ -1073,8 +1079,7 @@ async function open(server, req, pageUrl, budget) {
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }
-  const out = await resolveViaHelper(server.url, kino, SITE + "/", budget.captures > 0);
-  if (out && out.captured) budget.captures -= 1;
+  const out = await resolveViaHelper(server.url, kino, SITE + "/", () => takeCapture(budget));
   return out;
 }
 var STATS_KEY = "srvStats";
@@ -1122,7 +1127,7 @@ async function resolve(ref) {
   const servers = plan(parseServers(await getPage(pageUrl, { Referer: `${SITE}/donghua/${encodeURIComponent(slug)}` })));
   if (!servers.length) throw kino.error("not_found", "no servers on " + pageUrl, { userMessage: t("noStreams") });
   const req = makeReq(kino, { deadline: Date.now() + RESOLVE_MS });
-  const budget = { captures: MAX_CAPTURES };
+  const budget = { captures: MAX_CAPTURES, deadline: Date.now() + RESOLVE_MS };
   let prefSet = false;
   try {
     prefSet = String(kino.config.get("server") || "auto") !== "auto";
