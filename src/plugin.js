@@ -6,8 +6,9 @@
 // browser (`kino.browser.capture`), which only exists inside `resolve` and only in the app.
 
 import { SITE, GENRES, isDubbed, parseCards, parseShow, parseServers } from "./mundodonghua.js";
-import { extractorFor } from "./extractors/index.js";
 import { makeReq, UA } from "./util/http.js";
+import { makeBrowse } from "./browse/index.js";
+import { RESOLVER_REPO, resolveViaHelper, resolverInstalled } from "./resolve-door.js";
 import { searchWithTerms } from "./util/terms.js";
 import { homeWithin } from "./util/home.js";
 
@@ -32,12 +33,14 @@ const STRINGS = {
     ep: "Ep.", lat: "Latino", esp: "Castellano", sub: "Subtitulado", episode: "Episodio", heroText: "Animación china en español, con episodios nuevos cada semana.",
     unavailable: "El servicio no está disponible en este momento.", noEpisodes: "No se encontraron episodios de este donghua.", noStreams: "Ningún servidor de este episodio abrió. Prueba más tarde.",
     statusLine: "Listas guardadas: {n}", cacheCleared: "Caché vaciada.",
+    needResolver: "Para reproducir, abre MundoDonghua desde el menú e instala el motor de reproducción que te pedirá.",
   },
   en: {
     news: "What's new", newEpisodes: "New episodes", airing: "Airing", finished: "Finished", all: "Donghua", movies: "Movies", genres: "Genres", series: "Series", more: "More",
     ep: "Ep.", lat: "Latino", esp: "Castilian", sub: "Subtitled", episode: "Episode", heroText: "Chinese animation in Spanish, with new episodes every week.",
     unavailable: "The service is not available right now.", noEpisodes: "No episodes found for this donghua.", noStreams: "No server of this episode opened. Try again later.",
     statusLine: "Lists kept: {n}", cacheCleared: "Cache cleared.",
+    needResolver: "To play, open MundoDonghua from the menu and install the playback engine it asks for.",
   },
 };
 const t = (key) => {
@@ -228,14 +231,20 @@ export async function episodes(ref) {
 const NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", vhide: "VidHide", swish: "StreamWish", sp2p: "StreamP2P" };
 const HLS = "application/vnd.apple.mpegurl";
 
-/** The servers of an episode in the order to try them: the ones opened with plain requests first (cheap and not tied to the app), then the browser ones. */
+// VGEmbed and StreamP2P only resolve in a real browser (bot/JS gated), so the resolver hands them to MundoDonghua's
+// WebView capture -- costlier than the inline hosts (VOE/VidHide/StreamWish/Byse), so they go last; Asura is a direct playlist.
+const CAPTURE_IDS = new Set(["kaga", "sp2p"]);
+// The order to try an episode's servers: the direct playlist, then the quick inline hosts, Byse/Filemoon (a slower PoW
+// captcha) after them, and the WebView-only ones last.
+const ORDER = ["asura", "vhide", "swish", "amagi", "fmoon", "kaga", "sp2p"];
+/** The servers of an episode in the order to try them. */
 function plan(servers) {
-  const cheap = (s) => (s.kind === "hls" ? 0 : extractorFor(s.url) ? 1 : 9);
+  const base = (s) => { const i = ORDER.indexOf(s.id); return i < 0 ? 50 : i; };
   // Ajustes ▸ MundoDonghua ▸ Servidor preferido: that one first, whatever it costs; the rest in the usual order
   let pref = "auto";
   try { pref = String(kino.config.get("server") || "auto"); } catch (_) { pref = "auto"; }
-  const rank = (s) => (pref !== "auto" && s.id === pref ? -1 : cheap(s));
-  return servers.map((s) => ({ ...s, cheap: cheap(s) })).sort((a, b) => rank(a) - rank(b));
+  const rank = (s) => (pref !== "auto" && s.id === pref ? -1 : base(s));
+  return [...servers].sort((a, b) => rank(a) - rank(b));
 }
 
 /** One server's stream, or null; `budget.captures` counts the hidden-browser pages left for this resolve. */
@@ -245,21 +254,20 @@ async function open(server, req, pageUrl, budget) {
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }
-  const ex = extractorFor(server.url);
-  if (ex) return ex.extract(server.url, req, kino);
-  if (!kino.browser || typeof kino.browser.capture !== "function" || budget.captures <= 0) return null;
-  budget.captures -= 1;
-  const page = await kino.browser.capture(server.url, { timeoutMs: CAPTURE_MS, headers: { Referer: SITE + "/" } });
-  const media = (page && page.media) || [];
-  const best = media.find((x) => /m3u8|mpd/i.test(x.url)) || media[0];
-  if (!best) return null;
-  return { url: best.url, mime: best.mime || (/\.mpd/i.test(best.url) ? "application/dash+xml" : /\.mp4/i.test(best.url) ? "video/mp4" : HLS), headers: best.headers || { Referer: server.url } };
+  // The inline hosts (VOE/VidHide/StreamWish/Byse) resolve through the door; the browser-only ones (VGEmbed, StreamP2P)
+  // go to MundoDonghua's own WebView capture, capped per resolve so a bad episode can't open many 20 s pages.
+  const capture = CAPTURE_IDS.has(server.id);
+  if (capture && budget.captures <= 0) return null;
+  const out = await resolveViaHelper(server.url, kino, SITE + "/", capture);
+  if (capture) budget.captures -= 1;
+  return out;
 }
 
 /** `ref` is an episode ("e:<slug>:<n>"), a movie ("m:<slug>", its first episode) or one of an episode's other servers ("c:<slug>:<n>:<i>"). */
 export async function resolve(ref) {
   const m = /^(?:e:([^:]+):(\d+)|m:([^:]+)|c:([^:]+):(\d+):(\d+))$/.exec(String(ref || ""));
   if (!m) throw kino.error("not_found", "unknown ref: " + ref);
+  if (!(await resolverInstalled(kino))) throw kino.error("unavailable", "resolver missing", { userMessage: t("needResolver") });
   const slugRaw = m[1] || m[3] || m[4];
   const number = Number(m[2] || (m[3] ? 1 : m[5]));
   const only = m[6] != null ? Number(m[6]) : null;
@@ -283,6 +291,7 @@ export async function resolve(ref) {
       if (only == null) {
         const others = servers.map((_, j) => j).filter((j) => j !== i);
         if (others.length) stream.alternatives = others.map((j) => ({ ref: `c:${encodeURIComponent(slug)}:${number}:${j}`, label: NAMES[servers[j].id] || servers[j].id }));
+        try { browseScreen().notePlayed("d:" + encodeURIComponent(slug)); } catch (_) { /* never fails a play */ }
       }
       return stream;
     } catch (e) {
@@ -308,4 +317,60 @@ export async function action(key) {
     return { message: t("cacheCleared") };
   }
   return { message: "" };
+}
+
+// ---- browse screen + Kino Resolver install gate ----
+
+const SUPPORT_URL = "https://ko-fi.com/xuperplugins";
+
+/** The donate affordance under every install button: a QR on TV (a TV can't open a link well), a heart button on phone/desktop. */
+function supportNode(device) {
+  if (device === "tv") return { type: "QrImage", value: SUPPORT_URL, size: "large", labelText: "Si te gusta mi trabajo, escanéalo y apóyame", labelTextEn: "If you like my work, scan it and support me" };
+  return { type: "ElevatedButton", key: "donate", icon: "heart", labelText: "Si te gusta mi trabajo, apóyame", labelTextEn: "If you like my work, support me", onPressed: { go: { url: { href: SUPPORT_URL } } } };
+}
+
+/** The install gate: the first screen while the shared kino-resolver (the engine MundoDonghua plays through) is not installed. */
+function installGateView(device) {
+  return { type: "Scaffold", key: "mundodonghua-install",
+    body: { type: "SingleChildScrollView", key: "installScroll", children: [
+      { type: "Column", padding: 24, gap: 16, crossAxisAlignment: "stretch", children: [
+        { type: "Text", text: "Necesitas el motor de reproducción", textEn: "You need the playback engine", style: "h3" },
+        { type: "Text", color: "secondary", text: "MundoDonghua reproduce a través de Kino Resolver (gratis). Instálalo una vez y sirve para este y para otros plugins de sitios.", textEn: "MundoDonghua plays through Kino Resolver (free). Install it once and it works here and in other site plugins." },
+        { type: "ElevatedButton", key: "installResolver", labelText: "Instalar Kino Resolver", labelTextEn: "Install Kino Resolver", onPressed: { go: { installPlugin: { repo: RESOLVER_REPO } } } },
+        supportNode(device),
+      ] },
+    ] },
+  };
+}
+
+/** The tabs of the own browse screen: the same ones section() serves (Novedades / Series / Géneros / Películas). */
+const SCREEN_TABS = [
+  { id: "novedades", es: "Novedades", en: "What's new" },
+  { id: "series", es: "Series", en: "Series" },
+  { id: "generos", es: "Géneros", en: "Genres" },
+  { id: "peliculas", es: "Películas", en: "Movies" },
+];
+
+let browseInstance = null;
+const browseScreen = () => (browseInstance ??= makeBrowse({
+  kino,
+  brand: "MundoDonghua",
+  tabs: SCREEN_TABS,
+  loadTab: async (tabId) => ({ rows: (await section({ tab: tabId })).rows }),
+  searchTitles: (q) => search({ q }),
+  canPlay: false,
+}));
+
+/** `screen(ctx)`: the install gate while the resolver is missing, the rich browse screen (its own section rows) once it is there. */
+export async function screen(ctx) {
+  await null;
+  const c = ctx && typeof ctx === "object" ? ctx : {};
+  if (!(c.installed && c.installed[RESOLVER_REPO])) return installGateView(c.device);
+  return browseScreen().view(c);
+}
+
+/** `screenEvent(ev)`: the screen's events (its timers load a tab or a search, one per call). */
+export async function screenEvent(ev) {
+  await null;
+  return browseScreen().event(ev && typeof ev === "object" ? ev : {});
 }

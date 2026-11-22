@@ -14,6 +14,17 @@ let lang = "es";
 let cfg = {};
 let captures = [];
 let captureImpl = null;
+// The shared kino-resolver door, stubbed: `resolverUp` toggles install; `door(url)` decides what resolve returns
+// (default: an hls for the inline hosts, empty for the WebView-only ones VGEmbed/StreamP2P).
+let resolverUp = true;
+let door = null;
+const defaultDoor = (url) => {
+  if (/vidhide|vidhidepro|vidhideplus|vidhidefast|morencius|filelions|callistanise|dintezuvio|minochinos/i.test(url)) return { streams: [{ url: "https://cdn.test/vhide/master.m3u8", kind: "hls", server: "vidhide", referer: "https://vidhidepro.com/" }] };
+  if (/streamwish|embedwish|hlswish|strwish|wishembed|hglink|vibuxer/i.test(url)) return { streams: [{ url: "https://cdn.test/swish/master.m3u8", kind: "hls", server: "streamwish" }] };
+  if (/voe/i.test(url)) return { streams: [{ url: "https://cdn.test/voe/master.m3u8", kind: "hls", server: "voe" }] };
+  if (/byse|filemoon/i.test(url)) return { streams: [{ url: "https://cdn.test/byse/master.m3u8", kind: "hls", server: "filemoon" }] };
+  return { streams: [] }; // vgembed / strp2p: only a real browser resolves these
+};
 globalThis.kino = {
   get lang() { return lang; },
   config: { get: (k) => cfg[k] },
@@ -27,13 +38,21 @@ globalThis.kino = {
   sleep: (ms) => new Promise((r) => setTimeout(r, Math.min(ms, 5))), // the runtime has it; Home waits on short sleeps
   log: (...a) => logs.push(a.join(" ")),
   error: (code, message, opts = {}) => Object.assign(new Error(message), { code, ...opts }),
+  plugins: {
+    call: async (alias, method, args = {}) => {
+      if (alias !== "resolver") throw kino.error("not_declared", alias);
+      if (method === "normalizeHost") { if (!resolverUp) throw kino.error("provider_missing", "not installed"); let h = ""; try { h = new URL(args.url).host; } catch (_) { h = ""; } return { host: h }; }
+      if (method === "resolve") return (door || defaultDoor)(args.url, args.referer);
+      throw kino.error("not_declared", method);
+    },
+  },
 };
 const withBrowser = (impl) => { captureImpl = impl; globalThis.kino.browser = { capture: async (url, o) => { captures.push({ url, o }); return captureImpl(url, o); } }; };
 const noBrowser = () => { delete globalThis.kino.browser; captureImpl = null; };
 const plugin = await import("../plugin.js");
 const { extractorFor } = await import("../src/extractors/index.js");
 
-beforeEach(() => { calls.length = 0; pages = {}; logs = []; store = new Map(); lang = "es"; cfg = {}; captures = []; noBrowser(); });
+beforeEach(() => { calls.length = 0; pages = {}; logs = []; store = new Map(); lang = "es"; cfg = {}; captures = []; noBrowser(); resolverUp = true; door = null; });
 
 const S = "https://www.mundodonghua.com";
 const LISTA = fixture("lista.html");
@@ -151,55 +170,54 @@ test("episodes and details: the series' synopsis, genres and poster, and its epi
 
 const OLD_URL = `${S}/ver/1st-kiss/1`;
 const NEW_URL = `${S}/ver/jade-dynasty-4/11`;
-const hlsPage = "<script>var d={\"hls4\":\"/stream/abc/master.m3u8\"};</script>";
 
-test("resolve: the servers that need no browser come first (VidHide, StreamWish), and the others are lazy copies", async () => {
+test("resolve: the fast inline servers come first (VidHide), the rest are lazy copies, no browser needed", async () => {
   pages[NEW_URL] = { body: EP_NEW };
-  const servers = (await import("../src/mundodonghua.js")).parseServers(EP_NEW);
-  const vhide = servers.find((s) => s.id === "vhide").url;
-  pages[vhide] = { body: hlsPage };
   const s = await plugin.resolve("e:jade-dynasty-4:11");
   assert.equal(s.label, "VidHide");
   assert.match(s.url, /master\.m3u8$/);
   assert.equal(s.mime, "application/vnd.apple.mpegurl");
-  assert.deepEqual(s.alternatives.map((a) => a.label), ["StreamWish", "Filemoon", "VOE", "StreamP2P"]);
+  assert.deepEqual(s.alternatives.map((a) => a.label), ["StreamWish", "VOE", "Filemoon", "StreamP2P"]);
   assert.equal(captures.length, 0, "no hidden browser page was opened");
-  pages[servers.find((x) => x.id === "swish").url] = { body: hlsPage };
   const sw = await plugin.resolve(s.alternatives[0].ref);
   assert.equal(sw.label, "StreamWish", "a lazy copy asks only its own server");
   assert.equal(sw.alternatives, undefined);
 });
 
-test("resolve: an old episode has only servers that need the hidden browser; its capture gives the stream, with the headers the page carried", async () => {
-  pages[OLD_URL] = { body: EP_OLD };
-  withBrowser(async (url) => ({ media: [{ url: "https://cdn.example/seg.mp4", headers: { Referer: "https://bysekoze.com/" } }, { url: "https://cdn.example/master.m3u8", headers: { Referer: "https://bysekoze.com/", Origin: "https://bysekoze.com" } }] }));
-  const s = await plugin.resolve("e:1st-kiss:1");
-  assert.equal(s.url, "https://cdn.example/master.m3u8", "a playlist wins over a file");
-  assert.equal(s.mime, "application/vnd.apple.mpegurl");
-  assert.equal(s.headers.Origin, "https://bysekoze.com");
-  assert.equal(s.label, "Filemoon");
-  assert.match(captures[0].url, /^https:\/\/bysekoze\.com\/e\//);
-  assert.equal(captures[0].o.headers.Referer, "https://www.mundodonghua.com/");
-  assert.ok(captures[0].o.timeoutMs <= 25000);
-  assert.ok(s.alternatives.length >= 2);
+test("resolve: without the resolver installed it asks to install the playback engine (and never names the brand)", async () => {
+  pages[NEW_URL] = { body: EP_NEW };
+  resolverUp = false;
+  await assert.rejects(plugin.resolve("e:jade-dynasty-4:11"), (e) => e.code === "unavailable" && /motor de reproducci/.test(e.userMessage) && !/kino/i.test(e.userMessage));
 });
 
-test("resolve: at most three hidden-browser pages per resolve, a failed capture falls through, and no browser at all is a sentence for the person", async () => {
+test("resolve: VGEmbed/StreamP2P resolve through the WebView capture, a playlist winning over a file", async () => {
   pages[OLD_URL] = { body: EP_OLD };
-  withBrowser(async () => { throw Object.assign(new Error("the page asks to confirm a human is there"), { code: "blocked" }); });
+  door = () => ({ streams: [] }); // nothing resolves inline, so it reaches the capture-only server (VGEmbed)
+  withBrowser(async () => ({ media: [{ url: "https://cdn.example/seg.mp4", headers: { Referer: "https://vgembed.com/" } }, { url: "https://cdn.example/master.m3u8", headers: { Referer: "https://vgembed.com/", Origin: "https://vgembed.com" } }] }));
+  const s = await plugin.resolve("e:1st-kiss:1");
+  assert.equal(s.url, "https://cdn.example/master.m3u8");
+  assert.equal(s.label, "VGEmbed");
+  assert.match(captures[0].url, /^https:\/\/vgembed\.com\/e\//);
+  assert.equal(captures[0].o.headers.Referer, "https://www.mundodonghua.com/");
+});
+
+test("resolve: the WebView capture is capped and falls through; with no browser the person gets a sentence", async () => {
+  pages[OLD_URL] = { body: EP_OLD };
+  door = () => ({ streams: [] });
+  withBrowser(async () => { throw Object.assign(new Error("blocked"), { code: "blocked" }); });
   await assert.rejects(plugin.resolve("e:1st-kiss:1"), (e) => e.code === "not_found" && /Ningún servidor/.test(e.userMessage));
-  assert.ok(captures.length <= 3, "capped at three: " + captures.length);
-  assert.ok(logs.some((l) => /blocked/.test(l)));
+  assert.ok(captures.length >= 1 && captures.length <= 3, "capped: " + captures.length);
   noBrowser();
   captures = [];
   await assert.rejects(plugin.resolve("e:1st-kiss:1"), (e) => e.code === "not_found");
   assert.equal(captures.length, 0);
 });
 
-test("resolve: Asura's playlist is used when it answers; a movie is its episode 1; bad refs are errors", async () => {
+test("resolve: Asura's playlist is used when it answers; a movie is its episode 1; bad refs are errors; the extractors still classify", async () => {
   pages[OLD_URL] = { body: EP_OLD };
   const asura = (await import("../src/mundodonghua.js")).parseServers(EP_OLD).find((s) => s.id === "asura").url;
   pages[asura] = { body: "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nx.m3u8" };
+  door = () => ({ streams: [] }); // only Asura (a direct playlist) answers
   const s = await plugin.resolve("e:1st-kiss:1");
   assert.equal(s.label, "Asura");
   assert.equal(s.url, asura);
@@ -225,15 +243,12 @@ test("settings: the status line counts the lists kept and the action clears them
 
 test("settings: the preferred server is tried first, the others follow", async () => {
   pages[NEW_URL] = { body: EP_NEW };
-  withBrowser(async () => ({ media: [{ url: "https://cdn.example/f.m3u8", headers: { Referer: "https://bysekoze.com/" } }] }));
   cfg.server = "fmoon";
   const s = await plugin.resolve("e:jade-dynasty-4:11");
-  assert.equal(s.label, "Filemoon", "Filemoon first even though VidHide and StreamWish are cheaper");
-  assert.equal(captures.length, 1);
+  assert.equal(s.label, "Filemoon", "Filemoon first when preferred, even though the others rank higher");
+  assert.equal(captures.length, 0, "Filemoon resolves inline through the door now");
   assert.deepEqual(s.alternatives.map((a) => a.label).sort(), ["StreamP2P", "StreamWish", "VOE", "VidHide"]);
   cfg.server = "auto"; captures = [];
-  const servers = (await import("../src/mundodonghua.js")).parseServers(EP_NEW);
-  pages[servers.find((x) => x.id === "vhide").url] = { body: hlsPage };
   assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VidHide");
   assert.equal(captures.length, 0);
 });
