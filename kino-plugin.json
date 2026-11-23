@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "apiVersion": 30,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -9,6 +9,7 @@
   "author": "xuper-plugin",
   "homepage": "https://github.com/xuper-plugin/kino-plugin-mundodonghua",
   "hosts": [
+    "raw.githubusercontent.com",
     "mundodonghua.com",
     "www.mundodonghua.com",
     "bysekoze.com",
@@ -224,6 +225,6 @@
   },
   "signature": {
     "authorKey": "6693946bd5c56196960959c4b9665fad5094374bcb85ddb282f8bf762c835263",
-    "value": "cfead249c837955a2d84364543977f4314b5089cbc217d26657542d11174abe84711be0dac4815098a5d9f1dc99a2f95f0aa9595d0c6670eca05156a33717c0e"
+    "value": "9a31ba718d4a0cf606f464023cc902e7b79b22706d9d3fbac94ae72bea7d604688755e9e4a7bc7e954e9898df7a2e5e0f6d6b671d621a110287f328fb78bd90c"
   }
 }

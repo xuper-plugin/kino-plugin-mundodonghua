@@ -357,7 +357,7 @@ export async function action(key) {
 
 // MundoDonghua delegates every hoster to kino-resolver (resolve() refuses with needResolver while it is missing), so the screen is the install gate until it is installed.
 let std = null;
-const standard = () => (std ??= makeStandardScreen({
+const standard = () => (std ??= makeStandardScreen({ snapshot: "xuper-plugin/kino-plugin-mundodonghua",
   kino, name: "MundoDonghua", logo: LOGO, logoAspect: LOGO_ASPECT, needsResolver: true, hasSettings: true,
   tabs: [
     { id: "novedades", label: "Novedades", labelEn: "What's new" },
