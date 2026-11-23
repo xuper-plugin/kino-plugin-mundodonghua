@@ -1,8 +1,8 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.4.2",
-  "apiVersion": 20,
+  "version": "0.5.0",
+  "apiVersion": 30,
   "entry": "plugin.js",
   "icon": "icon.png",
   "description": "Donghua (animación china) en español de mundodonghua.com: sección propia, 32 géneros, nuevos episodios, series y películas, en latino, castellano o subtitulado.",
