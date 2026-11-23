@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "apiVersion": 20,
   "entry": "plugin.js",
   "icon": "icon.png",
