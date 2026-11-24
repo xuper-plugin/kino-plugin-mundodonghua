@@ -213,8 +213,41 @@ export async function section({ tab } = {}) {
   return answer;
 }
 
+// ---- categories: a picture for every tile ----
+
+/**
+ * One picture per genre tile: a well-known title of it, as its TMDB backdrop at w780, each checked with a request (200, image/jpeg). Static on purpose: no extra request at runtime. Keys are the site's genre names; one not listed (Ecchi, Harem: not family-friendly pictures) gets no art, Kino draws its plain tile.
+ * Kino draws a tile's picture from `art` (any public https image).
+ */
+const TM = "https://image.tmdb.org/t/p/w780";
+const TILE_ART = {
+  "Acción": TM + "/cTCn2EO69SERNfhaezJMoqBom4G.jpg",
+  "Artes Marciales": TM + "/qdthf9WrRDSaIkGVQGhhJ9pz1hn.jpg",
+  Aventura: TM + "/9URu8gMwjwjtSAUbaAevlIjYqSs.jpg",
+  "Ciencia Ficción": TM + "/zxfBtHz5UmSTfIEC4O4GngyjHwa.jpg",
+  Comedia: TM + "/80AhZSbY4eYe7HZnmkqX18ZcAFj.jpg",
+  "Cultivación": TM + "/8NIvQY34tNPc4txNeym2zEYk9ek.jpg",
+  Demonios: TM + "/pvZPoC4HYVvUkjuDvlJkbBf7bYW.jpg",
+  Drama: TM + "/w3agwUSMpJ4X9t1jGrDtqqRPjDQ.jpg",
+  Escolar: TM + "/Q7AZOhmO9NGO6WRzu0uKh2dbWO.jpg",
+  "Fantasía": TM + "/pmeXHFfnoBd9YxT7c1u3Y9Z9lrO.jpg",
+  Historico: TM + "/g2zGzgH4SNixkMYrBeEFzceCbhM.jpg",
+  Magia: TM + "/AsaEmDMgrt9MCCTXxUzY9PtFZko.jpg",
+  Mechas: TM + "/484TQnWzNSm2iGj6XMY66VBDr6g.jpg",
+  Misterio: TM + "/z67lpMtm8YGykJO4p89meuNMvj8.jpg",
+  "Mitología": TM + "/k1pJslKr4aDayw9kWwWnlC3MIP3.jpg",
+  "Música": TM + "/x6jWDL4H9TaBLGEvyej0qKiirBU.jpg",
+  "Psicológico": TM + "/z8IPicmEKXUO4I2UDdMEqw7RqOE.jpg",
+  "Reencarnación": TM + "/g03h9TULzJZOoXA34Abp5LE7lvt.jpg",
+  Romance: TM + "/xPzeiPXPpdUJNHAnCZMeFmbxDPc.jpg",
+  Seinen: TM + "/sPN7Ylc7swmyukJeQBNcRAl9usS.jpg",
+  Shonen: TM + "/5F0HVEgkgP99fEWDjPyikGt9jQi.jpg",
+  Sobrenatural: TM + "/mDIMt1vr7hcZRlcUz5hHY2q2M6r.jpg",
+};
+const withArt = (tile, art) => (art ? { ...tile, art } : tile);
+
 export async function categories() {
-  return GENRES.slice(0, 24).map((g) => ({ id: "g-" + hash36(g), title: g, ref: "genre:" + encodeURIComponent(g) }));
+  return GENRES.slice(0, 24).map((g) => withArt({ id: "g-" + hash36(g), title: g, ref: "genre:" + encodeURIComponent(g) }, TILE_ART[g]));
 }
 
 /** A show's own page: synopsis, genres and its type, from the site. */

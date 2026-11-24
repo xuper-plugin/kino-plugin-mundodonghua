@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.10
+
+- Categorías: every genre tile now shows a picture (a well-known donghua or anime of the genre, static, no extra requests; Ecchi and Harem stay plain)
+
 ## 0.5.7
 
 - A rich Home that opens at once: a ready slider (TMDB backdrops and synopses) and at least 4 rows, from a snapshot in this repository refreshed every 6 hours (the site only as a fallback) (std 1.8.1)

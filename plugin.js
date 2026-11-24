@@ -1327,8 +1327,34 @@ async function section({ tab } = {}) {
   if (first) answer.hero = { title: first.title, text: t("heroText"), image: first.poster };
   return answer;
 }
+var TM = "https://image.tmdb.org/t/p/w780";
+var TILE_ART = {
+  "Acci\xF3n": TM + "/cTCn2EO69SERNfhaezJMoqBom4G.jpg",
+  "Artes Marciales": TM + "/qdthf9WrRDSaIkGVQGhhJ9pz1hn.jpg",
+  Aventura: TM + "/9URu8gMwjwjtSAUbaAevlIjYqSs.jpg",
+  "Ciencia Ficci\xF3n": TM + "/zxfBtHz5UmSTfIEC4O4GngyjHwa.jpg",
+  Comedia: TM + "/80AhZSbY4eYe7HZnmkqX18ZcAFj.jpg",
+  "Cultivaci\xF3n": TM + "/8NIvQY34tNPc4txNeym2zEYk9ek.jpg",
+  Demonios: TM + "/pvZPoC4HYVvUkjuDvlJkbBf7bYW.jpg",
+  Drama: TM + "/w3agwUSMpJ4X9t1jGrDtqqRPjDQ.jpg",
+  Escolar: TM + "/Q7AZOhmO9NGO6WRzu0uKh2dbWO.jpg",
+  "Fantas\xEDa": TM + "/pmeXHFfnoBd9YxT7c1u3Y9Z9lrO.jpg",
+  Historico: TM + "/g2zGzgH4SNixkMYrBeEFzceCbhM.jpg",
+  Magia: TM + "/AsaEmDMgrt9MCCTXxUzY9PtFZko.jpg",
+  Mechas: TM + "/484TQnWzNSm2iGj6XMY66VBDr6g.jpg",
+  Misterio: TM + "/z67lpMtm8YGykJO4p89meuNMvj8.jpg",
+  "Mitolog\xEDa": TM + "/k1pJslKr4aDayw9kWwWnlC3MIP3.jpg",
+  "M\xFAsica": TM + "/x6jWDL4H9TaBLGEvyej0qKiirBU.jpg",
+  "Psicol\xF3gico": TM + "/z8IPicmEKXUO4I2UDdMEqw7RqOE.jpg",
+  "Reencarnaci\xF3n": TM + "/g03h9TULzJZOoXA34Abp5LE7lvt.jpg",
+  Romance: TM + "/xPzeiPXPpdUJNHAnCZMeFmbxDPc.jpg",
+  Seinen: TM + "/sPN7Ylc7swmyukJeQBNcRAl9usS.jpg",
+  Shonen: TM + "/5F0HVEgkgP99fEWDjPyikGt9jQi.jpg",
+  Sobrenatural: TM + "/mDIMt1vr7hcZRlcUz5hHY2q2M6r.jpg"
+};
+var withArt = (tile, art) => art ? { ...tile, art } : tile;
 async function categories() {
-  return GENRES.slice(0, 24).map((g) => ({ id: "g-" + hash36(g), title: g, ref: "genre:" + encodeURIComponent(g) }));
+  return GENRES.slice(0, 24).map((g) => withArt({ id: "g-" + hash36(g), title: g, ref: "genre:" + encodeURIComponent(g) }, TILE_ART[g]));
 }
 async function details(ref) {
   const m = /^[dm]:(.+)$/.exec(String(ref || ""));

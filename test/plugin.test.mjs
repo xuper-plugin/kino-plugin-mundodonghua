@@ -272,3 +272,10 @@ test("resolve: a stream whose address does not answer is not played; the next se
   assert.equal(s.label, "StreamWish", "VidHide's CDN answered an error, so its stream was left");
   assert.match(s.url, /swish\/master\.m3u8$/);
 });
+
+test("categories: every genre tile has a static https TMDB art picture, except the two not family-friendly (Ecchi, Harem)", async () => {
+  const c = await plugin.categories();
+  const bare = c.filter((x) => !x.art).map((x) => x.title);
+  assert.deepEqual(bare, ["Ecchi", "Harem"]);
+  for (const x of c.filter((y) => y.art)) assert.match(x.art, /^https:\/\/image\.tmdb\.org\/t\/p\/w780\/[A-Za-z0-9]+\.jpg$/, x.id);
+});
