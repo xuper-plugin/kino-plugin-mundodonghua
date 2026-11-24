@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.11
+
+- Every Home row is typed anime, the movies row too (donghua is Chinese animation), so Kino's Home by categories fills its Anime shelf; new episodes lead
+
 ## 0.5.10
 
 - Categorías: every genre tile now shows a picture (a well-known donghua or anime of the genre, static, no extra requests; Ecchi and Harem stay plain)

@@ -1286,7 +1286,7 @@ async function home() {
     () => safeRow("episodios", () => rowOf("episodios", "list:episodios")),
     () => safeRow("emision", () => rowOf("emision", "list:emision")),
     () => safeRow("todas", () => rowOf("todas", "list:todas")),
-    () => safeRow("peliculas", () => rowOf("peliculas", "genre:Pel\xEDcula", "peliculas"))
+    () => safeRow("peliculas", () => rowOf("peliculas", "genre:Pel\xEDcula"))
   ]);
 }
 async function browse(ref, cursor) {
@@ -1314,11 +1314,11 @@ async function section({ tab } = {}) {
   if (chosen === "novedades") rows = await Promise.all([safeRow("episodios", () => rowOf("episodios", "list:episodios")), safeRow("emision", () => rowOf("emision", "list:emision"))]);
   else if (chosen === "series") rows = await Promise.all([safeRow("todas", () => rowOf("todas", "list:todas")), safeRow("finalizadas", () => rowOf("finalizadas", "list:finalizadas"))]);
   else if (chosen === "peliculas") {
-    rows = [await safeRow("peliculas", () => rowOf("peliculas", "genre:Pel\xEDcula", "peliculas"))];
+    rows = [await safeRow("peliculas", () => rowOf("peliculas", "genre:Pel\xEDcula"))];
     rows.push(await safeRow("peliculas2", async () => {
       const { cards } = await listPage(refOf("genre:Pel\xEDcula"), 2);
       const items = cards.map(toItem);
-      return items.length ? { id: "peliculas2", title: `${t("more")} ${t("movies")}`, items, genre: "peliculas" } : null;
+      return items.length ? { id: "peliculas2", title: `${t("more")} ${t("movies")}`, items, genre: "anime" } : null;
     }));
   } else rows = await Promise.all(SECTION_GENRES.map((g) => safeRow("genre-" + g, () => rowOf("genre-" + hash36(g), "genre:" + encodeURIComponent(g)))));
   rows = rows.filter(Boolean);

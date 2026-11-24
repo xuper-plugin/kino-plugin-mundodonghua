@@ -95,7 +95,7 @@ test("home: the new episodes become their series with an Ep badge; a movie is a 
   assert.deepEqual(rows[1].items[0].badges, ["Latino"]);
   assert.equal(rows[3].items[0].kind, "movie");
   assert.equal(rows[3].items[0].ref, "m:peli-1");
-  assert.equal(rows[3].genre, "peliculas");
+  assert.deepEqual(rows.map((r) => r.genre), ["anime", "anime", "anime", "anime"], "every row is typed anime (donghua) for Kino's Home by categories");
 });
 
 test("browse: list pages by ?page=n; a genre is one big page that Kino gets in slices of 24, with a next only while there is more", async () => {
