@@ -18,6 +18,7 @@ let captureImpl = null;
 // (default: an hls for the inline hosts, empty for the WebView-only ones VGEmbed/StreamP2P).
 let resolverUp = true;
 let door = null;
+let deadCdn = null;
 const defaultDoor = (url) => {
   if (/vidhide|vidhidepro|vidhideplus|vidhidefast|morencius|filelions|callistanise|dintezuvio|minochinos/i.test(url)) return { streams: [{ url: "https://cdn.test/vhide/master.m3u8", kind: "hls", server: "vidhide", referer: "https://vidhidepro.com/" }] };
   if (/streamwish|embedwish|hlswish|strwish|wishembed|hglink|vibuxer/i.test(url)) return { streams: [{ url: "https://cdn.test/swish/master.m3u8", kind: "hls", server: "streamwish" }] };
@@ -30,6 +31,8 @@ globalThis.kino = {
   config: { get: (k) => cfg[k] },
   fetch: async (url, opts = {}) => {
     calls.push({ url, opts });
+    // What the resolver's door hands out answers its 2 KB peek, unless a test says a CDN is down (`deadCdn`).
+    if (url.startsWith("https://cdn.test/")) { const down = deadCdn && deadCdn.test(url); return { ok: !down, status: down ? 502 : 206, url, text: () => "#EXTM3U" }; }
     const p = pages[url];
     const status = p?.status ?? (p ? 200 : 404);
     return { ok: status < 400, status, url, text: () => p?.body ?? "", json: () => JSON.parse(p?.body ?? "{}") };
@@ -52,7 +55,7 @@ const noBrowser = () => { delete globalThis.kino.browser; captureImpl = null; };
 const plugin = await import("../plugin.js");
 const { extractorFor } = await import("../src/extractors/index.js");
 
-beforeEach(() => { calls.length = 0; pages = {}; logs = []; store = new Map(); lang = "es"; cfg = {}; captures = []; noBrowser(); resolverUp = true; door = null; });
+beforeEach(() => { calls.length = 0; pages = {}; logs = []; store = new Map(); lang = "es"; cfg = {}; captures = []; noBrowser(); resolverUp = true; door = null; deadCdn = null; });
 
 const S = "https://www.mundodonghua.com";
 const LISTA = fixture("lista.html");
@@ -260,4 +263,12 @@ test("resolve: learns which server opened and tries it first next time", async (
   // Second play: every server would open now; the learned order puts VOE (the past winner) ahead of VidHide.
   door = null;
   assert.equal((await plugin.resolve("e:jade-dynasty-4:11")).label, "VOE", "the server that opened is tried first");
+});
+
+test("resolve: a stream whose address does not answer is not played; the next server is", async () => {
+  pages[NEW_URL] = { body: EP_NEW };
+  deadCdn = /cdn\.test\/vhide\//;
+  const s = await plugin.resolve("e:jade-dynasty-4:11");
+  assert.equal(s.label, "StreamWish", "VidHide's CDN answered an error, so its stream was left");
+  assert.match(s.url, /swish\/master\.m3u8$/);
 });

@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "apiVersion": 30,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -52,6 +52,7 @@
   ],
   "browser": true,
   "streamHosts": "any",
+  "fetchHosts": "any",
   "categories": [
     "series",
     "movies"
@@ -225,6 +226,6 @@
   },
   "signature": {
     "authorKey": "6693946bd5c56196960959c4b9665fad5094374bcb85ddb282f8bf762c835263",
-    "value": "a2919f4b1bcd1e8b5de72fac4472536c8cb81b77114f2c8175b94e2244e32db1f254767ef54967d3193b325c374653b187ee2309cadef6d745d425e958c9180a"
+    "value": "56ce0708119ef5a3d5854085a81ff53f004eb3bc053dfff0a5e002b5576cfb681c3205f09a67e5e4aea51aec8cb5614d4b62a41c5809c26d77a6f3e745cd1e0b"
   }
 }

@@ -12,6 +12,7 @@ import { LOGO, LOGO_ASPECT } from "./logo.js";
 import { resolveViaHelper, resolverInstalled } from "./resolve-door.js";
 import { searchWithTerms } from "./util/terms.js";
 import { homeWithin } from "./util/home.js";
+import { peek } from "./util/probe.js";
 
 // Kino waits for every request a call left running before it delivers the call's answer (quickjs-kt joins the pending async work), so a Home that
 // gave up on a slow row at its own budget was still held until that row's request ended, or retried: measured on users' devices Home ran 21-34 s
@@ -314,27 +315,40 @@ export async function resolve(ref) {
   const stats = readStats();
   const order = only != null ? [only] : (prefSet ? servers.map((_, k) => k) : servers.map((_, k) => k).sort((a, b) => scoreOf(servers[b].id, stats) - scoreOf(servers[a].id, stats)));
   const failures = [];
+  let slow = null;
+  const deliver = (i, out) => {
+    const s = servers[i];
+    const stream = { url: out.url, mime: out.mime, headers: { "User-Agent": UA, ...(out.headers || {}) }, label: NAMES[s.id] || s.id };
+    if (out.subtitles) stream.subtitles = out.subtitles;
+    if (out.durationMs) stream.durationMs = out.durationMs;
+    if (only == null) {
+      const others = servers.map((_, j) => j).filter((j) => j !== i);
+      if (others.length) stream.alternatives = others.map((j) => ({ ref: `c:${encodeURIComponent(slug)}:${number}:${j}`, label: NAMES[servers[j].id] || servers[j].id }));
+      try { standard().notePlayed("d:" + encodeURIComponent(slug)); } catch (_) { /* never fails a play */ }
+    }
+    return stream;
+  };
   for (const i of order) {
     const s = servers[i];
     if (!s) continue;
     try {
       const out = await open(s, req, pageUrl, budget);
       if (!out) { failures.push(`${s.id}: no stream`); noteServer(s.id, false); continue; }
-      noteServer(s.id, true);
-      const stream = { url: out.url, mime: out.mime, headers: { "User-Agent": UA, ...(out.headers || {}) }, label: NAMES[s.id] || s.id };
-      if (out.subtitles) stream.subtitles = out.subtitles;
-      if (out.durationMs) stream.durationMs = out.durationMs;
-      if (only == null) {
-        const others = servers.map((_, j) => j).filter((j) => j !== i);
-        if (others.length) stream.alternatives = others.map((j) => ({ ref: `c:${encodeURIComponent(slug)}:${number}:${j}`, label: NAMES[servers[j].id] || servers[j].id }));
-        try { standard().notePlayed("d:" + encodeURIComponent(slug)); } catch (_) { /* never fails a play */ }
+      // What the resolver read off a page may not answer (2026-11-24: a VidHide master timing out, another answering 403,
+      // were played as they came): 2 KB of it are asked first. A slow one is kept as the last resort.
+      if (!out.captured && only == null) {
+        const answer = await peek(kino, { url: out.url, headers: { "User-Agent": UA, ...(out.headers || {}) } });
+        if (answer === "slow") { if (!slow) slow = { i, out }; failures.push(`${s.id}: slow`); continue; }
+        if (answer !== "ok") { failures.push(`${s.id}: address does not answer`); noteServer(s.id, false); continue; }
       }
-      return stream;
+      noteServer(s.id, true);
+      return deliver(i, out);
     } catch (e) {
       failures.push(`${s.id}: ${(e && e.code) || ""} ${(e && e.message) || e}`.trim());
       noteServer(s.id, false);
     }
   }
+  if (slow) return deliver(slow.i, slow.out);
   kino.log(`resolve ${slug}/${number} failed: ${failures.join("; ")}`);
   throw kino.error("not_found", "no server opened for " + pageUrl, { userMessage: t("noStreams") });
 }
