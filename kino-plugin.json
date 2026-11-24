@@ -1,7 +1,7 @@
 {
   "id": "mundodonghua",
   "name": "MundoDonghua",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "apiVersion": 30,
   "entry": "plugin.js",
   "icon": "icon.png",
@@ -225,6 +225,6 @@
   },
   "signature": {
     "authorKey": "6693946bd5c56196960959c4b9665fad5094374bcb85ddb282f8bf762c835263",
-    "value": "9a31ba718d4a0cf606f464023cc902e7b79b22706d9d3fbac94ae72bea7d604688755e9e4a7bc7e954e9898df7a2e5e0f6d6b671d621a110287f328fb78bd90c"
+    "value": "a2919f4b1bcd1e8b5de72fac4472536c8cb81b77114f2c8175b94e2244e32db1f254767ef54967d3193b325c374653b187ee2309cadef6d745d425e958c9180a"
   }
 }

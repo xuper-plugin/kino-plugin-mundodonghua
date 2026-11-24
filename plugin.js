@@ -132,7 +132,7 @@ function makeReq(kino2, { deadline }) {
   const req = async (url, opts = {}) => {
     const left = deadline - Date.now();
     if (left < MIN_MS) throw kino2.error("timeout", "no time left for " + new URL(url).hostname);
-    return kino2.fetch(url, { headers: { "User-Agent": UA, ...opts.headers || {} }, method: opts.method, body: opts.body, timeoutMs: Math.min(REQUEST_MS, left) });
+    return kino2.fetch(url, { headers: { "User-Agent": UA, ...opts.headers || {} }, method: opts.method, body: opts.body, timeoutMs: Math.min(opts.timeoutMs || REQUEST_MS, left) });
   };
   req.left = () => Math.max(0, deadline - Date.now());
   return req;
@@ -1349,6 +1349,7 @@ async function episodes(ref) {
 }
 var NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", vhide: "VidHide", swish: "StreamWish", sp2p: "StreamP2P" };
 var HLS = "application/vnd.apple.mpegurl";
+var HLS_MS = 4e3;
 var ORDER = ["asura", "vhide", "swish", "amagi", "fmoon", "kaga", "sp2p"];
 function plan(servers) {
   const base = (s) => {
@@ -1366,7 +1367,7 @@ function plan(servers) {
 }
 async function open(server, req, pageUrl, budget) {
   if (server.kind === "hls") {
-    const r = await req(server.url, { headers: { Referer: SITE + "/" } });
+    const r = await req(server.url, { headers: { Referer: SITE + "/" }, timeoutMs: HLS_MS });
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }

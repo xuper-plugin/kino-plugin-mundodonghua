@@ -243,6 +243,7 @@ export async function episodes(ref) {
 
 const NAMES = { asura: "Asura", fmoon: "Filemoon", amagi: "VOE", kaga: "VGEmbed", vhide: "VidHide", swish: "StreamWish", sp2p: "StreamP2P" };
 const HLS = "application/vnd.apple.mpegurl";
+const HLS_MS = 4000;
 
 // The order to try an episode's servers: the direct playlist, then the quick inline hosts, Byse/Filemoon (a slower PoW
 // captcha) after them, and the browser-only ones last (VGEmbed, StreamP2P -- bot/JS gated, so they go to the WebView
@@ -261,7 +262,9 @@ function plan(servers) {
 /** One server's stream, or null; `budget.captures` counts the hidden-browser pages left for this resolve. */
 async function open(server, req, pageUrl, budget) {
   if (server.kind === "hls") {
-    const r = await req(server.url, { headers: { Referer: SITE + "/" } });
+    // A live playlist answers in well under a second; its host (mdplayer.xyz) was down on 2026-11-24 and every play waited the
+    // whole request time before the next server, so this one gets a short wait.
+    const r = await req(server.url, { headers: { Referer: SITE + "/" }, timeoutMs: HLS_MS });
     if (!r.ok || !String(await r.text()).includes("#EXTM3U")) return null;
     return { url: server.url, mime: HLS, headers: { Referer: SITE + "/", Origin: SITE } };
   }
