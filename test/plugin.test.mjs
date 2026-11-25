@@ -115,6 +115,25 @@ test("browse: list pages by ?page=n; a genre is one big page that Kino gets in s
   assert.deepEqual((await plugin.browse("list:nope", null)).items, []);
 });
 
+test("\"Más películas\" is page 2 of the movies: its Ver más goes on from page 2, never back to page 1", async () => {
+  // The plugin keeps the last two genres' pages in memory (the home test left a one-movie Película): two others push it out.
+  for (const g of ["Romance", "Comedia"]) { pages[S + "/genero/" + g] = { body: grid([card("x", "X")]) }; await plugin.browse("genre:" + g, null); }
+  pages[S + "/genero/Pel%C3%ADcula"] = { body: grid(Array.from({ length: 60 }, (_, i) => card("peli-" + i, "Pelicula " + i, "Película"))) };
+  const { rows } = await plugin.section({ tab: "peliculas" });
+  const second = rows.find((r) => r.id === "peliculas2");
+  assert.equal(second.ref, "genre:Pel%C3%ADcula:p2");
+  const p2 = await plugin.browse(second.ref, null);
+  assert.deepEqual(p2.items.map((i) => i.ref), second.items.map((i) => i.ref), "Ver más opens on the row's own page");
+  assert.equal(p2.items[0].ref, "m:peli-24");
+  assert.equal(p2.next, "3");
+  const p3 = await plugin.browse(second.ref, p2.next);
+  assert.equal(p3.items[0].ref, "m:peli-48");
+  assert.equal(p3.next, undefined);
+  assert.equal((await plugin.browse("genre:Pel%C3%ADcula", null)).items[0].ref, "m:peli-0", "the plain genre still starts at page 1");
+  pages[S + "/lista-donghuas?page=2"] = { body: grid([card("l2", "L2")]) };
+  assert.equal((await plugin.browse("list:todas:p2", null)).items[0].ref, "d:l2");
+});
+
 test("search: the site's own search; the titles on its result pages are in an h5", async () => {
   pages[S + "/busquedas?donghua=swallowed"] = { body: BUSQUEDA };
   const r = await plugin.search("swallowed");

@@ -126,13 +126,17 @@ const LISTS = {
   episodios: { path: "/lista-episodios", titleKey: "newEpisodes", paged: true },
 };
 
-/** `{ name, title }` for a browse ref ("list:<name>" or "genre:<name>"); null for anything else. */
+/**
+ * `{ name, title, start }` for a browse ref ("list:<name>" or "genre:<name>", with ":p<n>" when it starts at page n: the "Más
+ * películas" row is page 2, so its "Ver más" goes on from there); null for anything else.
+ */
 function refOf(ref) {
-  const m = /^(list|genre):(.+)$/.exec(String(ref || ""));
+  const m = /^(list|genre):(.+?)(?::p([1-9]\d{0,3}))?$/.exec(String(ref || ""));
   if (!m) return null;
-  if (m[1] === "list") return LISTS[m[2]] ? { kind: "list", name: m[2], title: t(LISTS[m[2]].titleKey) } : null;
+  const start = m[3] ? Number(m[3]) : 1;
+  if (m[1] === "list") return LISTS[m[2]] ? { kind: "list", name: m[2], title: t(LISTS[m[2]].titleKey), start } : null;
   let name = m[2]; try { name = decodeURIComponent(m[2]); } catch (_) { /* keep */ }
-  return { kind: "genre", name, title: name };
+  return { kind: "genre", name, title: name, start };
 }
 
 /** One page (from 1) of a list or genre: the cards, and whether there may be a next page. */
@@ -170,7 +174,7 @@ export async function home() {
 export async function browse(ref, cursor) {
   const def = refOf(ref);
   if (!def) return { items: [] };
-  const page = cursor ? Math.max(1, parseInt(cursor, 10) || 1) : 1;
+  const page = cursor ? Math.max(1, parseInt(cursor, 10) || 1) : def.start;
   const { cards, more } = await listPage(def, page);
   return { items: cards.map(toItem), next: more ? String(page + 1) : undefined };
 }
@@ -203,7 +207,7 @@ export async function section({ tab } = {}) {
     rows.push(await safeRow("peliculas2", async () => {
       const { cards } = await listPage(refOf("genre:Película"), 2);
       const items = cards.map(toItem);
-      return items.length ? { id: "peliculas2", title: `${t("more")} ${t("movies")}`, items, genre: "anime" } : null;
+      return items.length ? { id: "peliculas2", title: `${t("more")} ${t("movies")}`, items, ref: "genre:" + encodeURIComponent("Película") + ":p2", genre: "anime" } : null;
     }));
   } else rows = await Promise.all(SECTION_GENRES.map((g) => safeRow("genre-" + g, () => rowOf("genre-" + hash36(g), "genre:" + encodeURIComponent(g)))));
   rows = rows.filter(Boolean);
