@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.12
+
+- The catalog door also lists a series' episodes, for the author's other plugins (std 1.10.0)
+
 ## 0.5.11
 
 - Every Home row is typed anime, the movies row too (donghua is Chinese animation), so Kino's Home by categories fills its Anime shelf; new episodes lead
